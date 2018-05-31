@@ -18,6 +18,10 @@
  *    
  */package moa.classifiers;
 
+import java.util.Collection;
+
+import com.yahoo.labs.samoa.instances.Instance;
+
 /**
  * An interface for incremental classifier models. As an extension of MultiClassClassifier, these
  * classifiers appear in the GUI Classification Tab. Marking them as OneClassClassifiers also
@@ -28,4 +32,7 @@
  */
 public interface OneClassClassifier extends MultiClassClassifier {
 
+	public void initialize(Collection<Instance> trainingPoints);
+	
+	public double getAnomalyScore(Instance inst);
 }

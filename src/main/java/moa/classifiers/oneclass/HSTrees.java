@@ -20,6 +20,9 @@
 
 package moa.classifiers.oneclass;
 
+import java.util.Collection;
+import java.util.Iterator;
+
 import com.github.javacliparser.FloatOption;
 import com.github.javacliparser.IntOption;
 import com.yahoo.labs.samoa.instances.Instance;
@@ -128,27 +131,10 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 	@Override
 	public void trainOnInstanceImpl(Instance inst)
 	{
-		this.numInstances++;
 		// If this is the first instance, then initialize the forest.
-		if(this.numInstances == 1)
+		if(this.numInstances == 0)
 		{
-			//System.out.println("Build the forest...");
-			this.dimensions = inst.numAttributes();
-			double[]max = new double[dimensions];
-			double[]min = new double[dimensions];
-			double sq;
-			
-			for (int i = 0 ; i < this.numTrees ; i++)
-			{
-				for(int j = 0 ; j < this.dimensions ; j++)
-				{
-					sq = this.classifierRandom.nextDouble();
-					min[j] = sq - (2.0*Math.max(sq, 1.0-sq));
-					max[j] = sq + (2.0*Math.max(sq, 1.0-sq));
-				}
-
-				forest[i] = new HSTreeNode(min, max, 1, maxDepth);
-			}
+			this.buildForest(inst);
 		}
 		
 		// Update the mass profile of every HSTree in the forest
@@ -174,7 +160,34 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 					forest[i].updateModel();
 				}
 			//}
-		}	
+		}
+		
+		this.numInstances++;
+	}
+	
+	/**
+	 * Build the forest of Streaming Half-Space Trees
+	 * 
+	 * @param inst an example instance
+	 */
+	private void buildForest(Instance inst)
+	{
+		this.dimensions = inst.numAttributes();
+		double[]max = new double[dimensions];
+		double[]min = new double[dimensions];
+		double sq;
+		
+		for (int i = 0 ; i < this.numTrees ; i++)
+		{
+			for(int j = 0 ; j < this.dimensions ; j++)
+			{
+				sq = this.classifierRandom.nextDouble();
+				min[j] = sq - (2.0*Math.max(sq, 1.0-sq));
+				max[j] = sq + (2.0*Math.max(sq, 1.0-sq));
+			}
+
+			forest[i] = new HSTreeNode(min, max, 1, maxDepth);
+		}
 	}
 	
 	/**
@@ -200,6 +213,28 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 		
 		if(!referenceWindow)
 		{
+			votes[1] = this.getAnomalyScore(inst) + 0.5 - this.anomalyThreshold;
+			votes[0] = 1.0 - votes[1];
+		}
+
+		//System.out.println(", "+votes[0]);
+		
+		return votes;
+	}
+
+	/**
+	 * Returns the anomaly score for the argument instance.
+	 * 
+	 * @param inst the argument instance
+	 * 
+	 * @return inst's anomaly score
+	 */
+	public double getAnomalyScore(Instance inst)
+	{
+		if(this.referenceWindow)
+			return 0.5;
+		else
+		{
 			double accumulatedScore = 0.0;
 			int massLimit = (int) (Math.ceil(this.sizeLimit*this.windowSize));
 			double maxScore = this.windowSize * Math.pow(2.0, this.maxDepth);
@@ -214,15 +249,11 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 
 			accumulatedScore = accumulatedScore / (((double) this.numTrees));
 			//System.out.println("accumulatedScore / : "+accumulatedScore);
-			votes[0] = accumulatedScore + 0.5 - this.anomalyThreshold;
-			votes[1] = 1.0 - votes[0];
+
+			return 0.5 - accumulatedScore + this.anomalyThreshold;
 		}
-
-		//System.out.println(", "+votes[0]);
-		
-		return votes;
 	}
-
+	
 	/**
 	 * HSTrees is randomizable.
 	 */
@@ -242,6 +273,24 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 	public void getModelDescription(StringBuilder out, int indent)
 	{
 
+	}
+
+	@Override
+	public void initialize(Collection<Instance> trainingPoints)
+	{
+		Iterator<Instance> trgPtsIterator = trainingPoints.iterator();
+		
+		if(trgPtsIterator.hasNext() && this.numInstances == 0)
+		{
+			Instance inst = trgPtsIterator.next();
+			this.buildForest(inst);
+			this.trainOnInstance(inst);
+		}
+		
+		while(trgPtsIterator.hasNext())
+		{
+			this.trainOnInstance((Instance)trgPtsIterator.next());			
+		}
 	}
 
 }

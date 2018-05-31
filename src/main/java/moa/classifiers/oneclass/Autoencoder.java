@@ -20,6 +20,9 @@
 
 package moa.classifiers.oneclass;
 
+import java.util.Collection;
+import java.util.Iterator;
+
 import org.apache.commons.math3.linear.*;
 
 import com.github.javacliparser.FloatOption;
@@ -118,6 +121,37 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 	}
 	
 	/**
+	 * Initializes the autoencoder network.
+	 */
+	private void initializeNetwork()
+	{
+		this.hiddenLayerSize = this.hiddenLayerOption.getValue();
+		this.learningRate = this.learningRateOption.getValue();
+		this.threshold = this.thresholdOption.getValue();
+		double[][] randomWeightsOne = new double[this.hiddenLayerSize][this.numAttributes];
+		double[][] randomWeightsTwo = new double[this.numAttributes][this.hiddenLayerSize];
+		
+		for(int i = 0 ; i < this.numAttributes ; i++)
+		{
+			for(int j = 0 ; j < this.hiddenLayerSize ; j++)
+			{
+				randomWeightsOne[j][i] = this.classifierRandom.nextDouble();
+				randomWeightsTwo[i][j] = this.classifierRandom.nextDouble();
+			}
+		}
+		
+		this.weightsOne = new Array2DRowRealMatrix(randomWeightsOne);
+		this.weightsTwo = new Array2DRowRealMatrix(randomWeightsTwo);
+		this.biasOne = this.classifierRandom.nextDouble();
+		this.biasTwo = this.classifierRandom.nextDouble();
+
+		//System.out.println("Weights One: "+this.weightsOne.toString()+" // Bias One: "+this.biasOne);
+		//System.out.println("Weights Two: "+this.weightsTwo.toString()+" // Bias Two: "+this.biasTwo);
+		
+		this.reset = false;
+	}
+	
+	/**
 	 * Uses backpropagation to update the weights in the autoencoder.
 	 */
 	@Override
@@ -127,103 +161,10 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 		if(this.reset)
 		{
 			this.numAttributes = inst.numAttributes()-1;
-			this.hiddenLayerSize = this.hiddenLayerOption.getValue();
-			this.learningRate = this.learningRateOption.getValue();
-			this.threshold = this.thresholdOption.getValue();
-			double[][] randomWeightsOne = new double[this.hiddenLayerSize][this.numAttributes];
-			double[][] randomWeightsTwo = new double[this.numAttributes][this.hiddenLayerSize];
-			
-			for(int i = 0 ; i < this.numAttributes ; i++)
-			{
-				for(int j = 0 ; j < this.hiddenLayerSize ; j++)
-				{
-					randomWeightsOne[j][i] = this.classifierRandom.nextDouble();
-					randomWeightsTwo[i][j] = this.classifierRandom.nextDouble();
-				}
-			}
-			
-			this.weightsOne = new Array2DRowRealMatrix(randomWeightsOne);
-			this.weightsTwo = new Array2DRowRealMatrix(randomWeightsTwo);
-			this.biasOne = this.classifierRandom.nextDouble();
-			this.biasTwo = this.classifierRandom.nextDouble();
-
-			//System.out.println("Weights One: "+this.weightsOne.toString()+" // Bias One: "+this.biasOne);
-			//System.out.println("Weights Two: "+this.weightsTwo.toString()+" // Bias Two: "+this.biasTwo);
-			
-			this.reset = false;
+			this.initializeNetwork();
 		}
 		
-		double [] attributeValues = new double[this.numAttributes];
-		
-		for(int i = 0 ; i < this.numAttributes ; i++)
-		{
-			attributeValues[i] = inst.value(i);
-		}
-		
-		RealMatrix input = new Array2DRowRealMatrix(attributeValues);
-		System.out.println("Input: "+input.toString());
-		RealMatrix hidden = firstLayer(input);
-		//System.out.println("Hidden: "+hidden.toString());
-		RealMatrix output = secondLayer(hidden);
-		//System.out.println("Output: "+output.toString());
-		
-		RealMatrix delta = new Array2DRowRealMatrix(this.numAttributes,1);
-		double squaredError = 0.0;
-		double adjustBiasTwo = 0.0;
-		
-		// Backpropagation to adjust the weights in layer two
-		for(int i = 0 ; i < this.numAttributes ; i++)
-		{
-			double inputVal = input.getEntry(i, 0);
-			double outputVal = output.getEntry(i, 0);
-			delta.setEntry(i, 0, (outputVal-inputVal)*outputVal*(1.0-outputVal));
-			squaredError += 0.5*Math.pow((outputVal-inputVal), 2.0);
-			adjustBiasTwo -= this.learningRate*delta.getEntry(i, 0)*this.biasTwo;
-		}
-		
-		//System.out.println("\nnumAttributes is "+this.numAttributes+", hiddenLayerSize is "+this.hiddenLayerSize);
-		//System.out.println("Input is "+input.getRowDimension()+" by "+input.getColumnDimension());
-		//System.out.println("WeightsOne is "+this.weightsOne.getRowDimension()+" by "+this.weightsOne.getColumnDimension());
-		//System.out.println("Hidden is "+hidden.getRowDimension()+" by "+hidden.getColumnDimension());
-		//System.out.println("WeightsTwo is "+this.weightsTwo.getRowDimension()+" by "+this.weightsTwo.getColumnDimension());
-		//System.out.println("Output is "+output.getRowDimension()+" by "+output.getColumnDimension());
-		//System.out.println("Delta is "+delta.getRowDimension()+" by "+delta.getColumnDimension());
-		//System.out.println("Delta: "+delta.toString());
-		
-		RealMatrix adjustmentTwo = (delta.multiply(hidden.transpose())).scalarMultiply(-1.0*this.learningRate);
-		
-		System.out.println("adjustementTwo: "+adjustmentTwo.toString());
-		
-		// Back propagation to adjust the weights in layer one
-		RealMatrix hidden2 = hidden.scalarMultiply(-1.0).scalarAdd(1.0);
-		RealMatrix delta2 = delta.transpose().multiply(this.weightsTwo);
-		double adjustBiasOne = 0.0;
-		
-		//System.out.println("Delta2: "+delta2.toString());
-		//System.out.println("Hidden2: "+hidden2.toString());
-		
-		
-		for (int i = 0 ; i < this.hiddenLayerSize ; i++)
-		{
-			delta2.setEntry(0, i, delta2.getEntry(0, i)*hidden2.getEntry(i, 0)*hidden.getEntry(i, 0));
-			adjustBiasOne -= this.learningRate*delta2.getEntry(0, i)*this.biasOne;
-		}
-		
-		RealMatrix adjustmentOne = delta2.transpose().multiply(input.transpose()).scalarMultiply(-1.0*this.learningRate);
-		
-		//System.out.println("Delta2*: "+delta2.toString());
-		System.out.println("adjustementOne: "+adjustmentOne.toString());
-		
-		this.weightsOne = this.weightsOne.add(adjustmentOne);
-		this.biasOne += adjustBiasOne;
-		this.weightsTwo = this.weightsTwo.add(adjustmentTwo);
-		this.biasTwo += adjustBiasTwo;
-		
-		System.out.println("Squared Error: "+squaredError);
-		System.out.println("Weights One: "+this.weightsOne.toString()+" // Bias One: "+this.biasOne);
-		System.out.println("Weights Two: "+this.weightsTwo.toString()+" // Bias Two: "+this.biasTwo);
-		
-		//promptEnterKey();
+		this.backpropagation(inst);		
 	}
 	
 	/**
@@ -269,6 +210,86 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 		
 		return new Array2DRowRealMatrix(tempValues);
 		
+	}
+	
+	/**
+	 * Performs backpropagation based on a training instance.
+	 * 
+	 * @param inst the training instance
+	 */
+	private void backpropagation(Instance inst)
+	{
+		double [] attributeValues = new double[this.numAttributes];
+		
+		for(int i = 0 ; i < this.numAttributes ; i++)
+		{
+			attributeValues[i] = inst.value(i);
+		}
+		
+		RealMatrix input = new Array2DRowRealMatrix(attributeValues);
+		//System.out.println("Input: "+input.toString());
+		RealMatrix hidden = firstLayer(input);
+		//System.out.println("Hidden: "+hidden.toString());
+		RealMatrix output = secondLayer(hidden);
+		//System.out.println("Output: "+output.toString());
+		
+		RealMatrix delta = new Array2DRowRealMatrix(this.numAttributes,1);
+		//double squaredError = 0.0;
+		double adjustBiasTwo = 0.0;
+		
+		// Backpropagation to adjust the weights in layer two
+		for(int i = 0 ; i < this.numAttributes ; i++)
+		{
+			double inputVal = input.getEntry(i, 0);
+			double outputVal = output.getEntry(i, 0);
+			delta.setEntry(i, 0, (outputVal-inputVal)*outputVal*(1.0-outputVal));
+			//squaredError += 0.5*Math.pow((outputVal-inputVal), 2.0);
+			adjustBiasTwo -= this.learningRate*delta.getEntry(i, 0)*this.biasTwo;
+		}
+		
+		//System.out.println("\nnumAttributes is "+this.numAttributes+", hiddenLayerSize is "+this.hiddenLayerSize);
+		//System.out.println("Input is "+input.getRowDimension()+" by "+input.getColumnDimension());
+		//System.out.println("WeightsOne is "+this.weightsOne.getRowDimension()+" by "+this.weightsOne.getColumnDimension());
+		//System.out.println("Hidden is "+hidden.getRowDimension()+" by "+hidden.getColumnDimension());
+		//System.out.println("WeightsTwo is "+this.weightsTwo.getRowDimension()+" by "+this.weightsTwo.getColumnDimension());
+		//System.out.println("Output is "+output.getRowDimension()+" by "+output.getColumnDimension());
+		//System.out.println("Delta is "+delta.getRowDimension()+" by "+delta.getColumnDimension());
+		//System.out.println("Delta: "+delta.toString());
+		
+		RealMatrix adjustmentTwo = (delta.multiply(hidden.transpose())).scalarMultiply(-1.0*this.learningRate);
+		
+		//System.out.println("adjustementTwo: "+adjustmentTwo.toString());
+		
+		// Back propagation to adjust the weights in layer one
+		RealMatrix hidden2 = hidden.scalarMultiply(-1.0).scalarAdd(1.0);
+		RealMatrix delta2 = delta.transpose().multiply(this.weightsTwo);
+		double adjustBiasOne = 0.0;
+		
+		//System.out.println("Delta2: "+delta2.toString());
+		//System.out.println("Hidden2: "+hidden2.toString());
+		
+		
+		for (int i = 0 ; i < this.hiddenLayerSize ; i++)
+		{
+			delta2.setEntry(0, i, delta2.getEntry(0, i)*hidden2.getEntry(i, 0)*hidden.getEntry(i, 0));
+			adjustBiasOne -= this.learningRate*delta2.getEntry(0, i)*this.biasOne;
+		}
+		
+		RealMatrix adjustmentOne = delta2.transpose().multiply(input.transpose()).scalarMultiply(-1.0*this.learningRate);
+		
+		//System.out.println("Delta2*: "+delta2.toString());
+		//System.out.println("adjustementOne: "+adjustmentOne.toString());
+		
+		this.weightsOne = this.weightsOne.add(adjustmentOne);
+		this.biasOne += adjustBiasOne;
+		this.weightsTwo = this.weightsTwo.add(adjustmentTwo);
+		this.biasTwo += adjustBiasTwo;
+		
+		//System.out.println("Squared Error: "+squaredError);
+		//System.out.println("Weights One: "+this.weightsOne.toString()+" // Bias One: "+this.biasOne);
+		//System.out.println("Weights Two: "+this.weightsTwo.toString()+" // Bias Two: "+this.biasTwo);
+		
+		//promptEnterKey();
 	}
 	
 	/**
@@ -320,45 +341,53 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 
 		if (this.reset == false)
 		{
-			double [] attributeValues = new double[this.numAttributes];
-			
-			for(int i = 0 ; i < this.numAttributes ; i++)
-			{
-				attributeValues[i] = inst.value(i);
-			}
-			
-			RealMatrix input = new Array2DRowRealMatrix(attributeValues);
-			
-			RealMatrix output = secondLayer(firstLayer(input));
-			double error = 0.0;
-			
-			for(int i = 0 ; i < this.numAttributes ; i++)
-			{
-				error += 0.5 * Math.pow(output.getEntry(i, 0) - input.getEntry(i, 0), 2.0);
-			}
-			
-			System.out.print("Input:");
-			for(int i = 0 ; i < this.numAttributes ; i++)
-			{
-				System.out.print(" "+inst.value(i));
-			}
-			System.out.print("\nRecns:");
-			for(int i = 0 ; i < this.numAttributes ; i++)
-			{
-				System.out.print(" "+output.getEntry(i, 0));
-			}
-			System.out.println("\nError: "+error);
+			double error = this.getAnomalyScore(inst);
 			
 			// Exponential function to convert the error [0, +inf) into a vote [1,0].
 			votes[0] = Math.pow(2.0, -1.0 * (error / this.threshold));
 			votes[1] = 1.0 - votes[0];
 			
-			System.out.println("Votes: ["+votes[0]+", "+votes[1]+"].");
+			//System.out.println("Votes: ["+votes[0]+", "+votes[1]+"].");
 		}
 
 		return votes;
 	}
 
+	/**
+	 * Returns the squared error between the input value and the reconstructed value as 
+	 * the anomaly score for the argument instance.
+	 * 
+	 * @param inst the instance to score
+	 * 
+	 * @return the argument instance's anomaly score.
+	 */
+	public double getAnomalyScore(Instance inst)
+	{
+		double error = 0.0;
+		
+		if(!this.reset)
+		{
+			double [] attributeValues = new double[inst.numAttributes()-1];
+
+
+			for(int i = 0 ; i < attributeValues.length ; i++)
+			{
+				attributeValues[i] = inst.value(i);
+			}
+
+			RealMatrix input = new Array2DRowRealMatrix(attributeValues);
+			RealMatrix output = secondLayer(firstLayer(input));
+
+			for(int i = 0 ; i < this.numAttributes ; i++)
+			{
+				error += 0.5 * Math.pow(output.getEntry(i, 0) - input.getEntry(i, 0), 2.0);
+			}
+		}
+		
+		return error;
+	}
+	
+	
 	/**
 	 * Autoencoder is randomizable.
 	 */
@@ -385,5 +414,23 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 		   Scanner scanner = new Scanner(System.in);
 		   scanner.nextLine();
 	}*/
+
+	@Override
+	public void initialize(Collection<Instance> trainingPoints)
+	{
+		Iterator<Instance> trgPtsIterator = trainingPoints.iterator();
+		
+		if(trgPtsIterator.hasNext() && this.reset)
+		{
+			Instance inst = (Instance)trgPtsIterator.next();
+			this.numAttributes = inst.numAttributes()-1;
+			this.initializeNetwork();
+		}
+		
+		while(trgPtsIterator.hasNext())
+		{
+			this.trainOnInstance((Instance)trgPtsIterator.next());			
+		}
+	}
 
 }
