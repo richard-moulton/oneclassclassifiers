@@ -109,7 +109,8 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 	@Override
 	public void trainOnInstanceImpl(Instance inst)
 	{
-		this.neighbourhood.add(inst);
+		if(this.getAnomalyScore(inst) < 0.5)
+			this.neighbourhood.add(inst);
 	}
 	
 	/**
@@ -156,11 +157,12 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 		if(this.neighbourhood.size() < 2)
 			return 1.0;
 		
-		
 		Instance nearestNeighbour = getNearestNeighbour(inst, this.neighbourhood, false);
 		Instance nnNearestNeighbour = getNearestNeighbour(nearestNeighbour, this.neighbourhood, true);
 		
 		double indicatorArgument = distance(inst, nearestNeighbour) / distance(nearestNeighbour, nnNearestNeighbour);
+		
+		//System.out.println("inst: "+inst.classValue()+", instNN: "+nearestNeighbour.classValue()+" ("+distance(inst, nearestNeighbour)+"), nnNN: "+nnNearestNeighbour.classValue()+" ("+distance(nearestNeighbour, nnNearestNeighbour)+")");
 		
 		return indicatorArgument;
 	}
