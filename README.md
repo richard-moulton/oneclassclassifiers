@@ -9,6 +9,8 @@ Implementations of one-class classifiers for use with MOA. Currently compatible 
 
 MOA (Massive Online Analysis) [1] is a Java-based, open source framework for data stream mining. More details can be found on its [website](http://moa.cms.waikato.ac.nz/) and it can be found on GitHub as well (https://github.com/waikato/moa).
 
+This project has a DOI: [![DOI](https://zenodo.org/badge/134278543.svg)](https://zenodo.org/badge/latestdoi/134278543)
+
 REFERENCES
 
 [1] A. Bifet, G. Holmes, R. Kirkby, and B. Pfahringer, “Moa: Massive online analysis,” J. Mach. Learn. Res., vol. 11, no. May, pp. 1601–1604, 2010.
