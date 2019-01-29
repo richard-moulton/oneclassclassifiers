@@ -144,9 +144,6 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 		this.weightsTwo = new Array2DRowRealMatrix(randomWeightsTwo);
 		this.biasOne = this.classifierRandom.nextDouble();
 		this.biasTwo = this.classifierRandom.nextDouble();
-
-		//System.out.println("Weights One: "+this.weightsOne.toString()+" // Bias One: "+this.biasOne);
-		//System.out.println("Weights Two: "+this.weightsTwo.toString()+" // Bias Two: "+this.biasTwo);
 		
 		this.reset = false;
 	}
@@ -176,8 +173,6 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 	 */
 	private RealMatrix firstLayer(RealMatrix input)
 	{
-		//System.out.println("Input is "+input.getRowDimension()+" by "+input.getColumnDimension());
-		//System.out.println("WeightsOne is "+this.weightsOne.getRowDimension()+" by "+this.weightsOne.getColumnDimension());
 		RealMatrix hidden = (this.weightsOne.multiply(input)).scalarAdd(this.biasOne);
 		double[] tempValues = new double[this.hiddenLayerSize];
 		
@@ -227,14 +222,11 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 		}
 		
 		RealMatrix input = new Array2DRowRealMatrix(attributeValues);
-		//System.out.println("Input: "+input.toString());
 		RealMatrix hidden = firstLayer(input);
-		//System.out.println("Hidden: "+hidden.toString());
 		RealMatrix output = secondLayer(hidden);
-		//System.out.println("Output: "+output.toString());
 		
 		RealMatrix delta = new Array2DRowRealMatrix(this.numAttributes,1);
-		//double squaredError = 0.0;
+
 		double adjustBiasTwo = 0.0;
 		
 		// Backpropagation to adjust the weights in layer two
@@ -247,27 +239,12 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 			adjustBiasTwo -= this.learningRate*delta.getEntry(i, 0)*this.biasTwo;
 		}
 		
-		//System.out.println("\nnumAttributes is "+this.numAttributes+", hiddenLayerSize is "+this.hiddenLayerSize);
-		//System.out.println("Input is "+input.getRowDimension()+" by "+input.getColumnDimension());
-		//System.out.println("WeightsOne is "+this.weightsOne.getRowDimension()+" by "+this.weightsOne.getColumnDimension());
-		//System.out.println("Hidden is "+hidden.getRowDimension()+" by "+hidden.getColumnDimension());
-		//System.out.println("WeightsTwo is "+this.weightsTwo.getRowDimension()+" by "+this.weightsTwo.getColumnDimension());
-		//System.out.println("Output is "+output.getRowDimension()+" by "+output.getColumnDimension());
-		//System.out.println("Delta is "+delta.getRowDimension()+" by "+delta.getColumnDimension());
-		//System.out.println("Delta: "+delta.toString());
-		
 		RealMatrix adjustmentTwo = (delta.multiply(hidden.transpose())).scalarMultiply(-1.0*this.learningRate);
-		
-		//System.out.println("adjustementTwo: "+adjustmentTwo.toString());
-		
+				
 		// Back propagation to adjust the weights in layer one
 		RealMatrix hidden2 = hidden.scalarMultiply(-1.0).scalarAdd(1.0);
 		RealMatrix delta2 = delta.transpose().multiply(this.weightsTwo);
 		double adjustBiasOne = 0.0;
-		
-		//System.out.println("Delta2: "+delta2.toString());
-		//System.out.println("Hidden2: "+hidden2.toString());
-		
 		
 		for (int i = 0 ; i < this.hiddenLayerSize ; i++)
 		{
@@ -277,19 +254,10 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 		
 		RealMatrix adjustmentOne = delta2.transpose().multiply(input.transpose()).scalarMultiply(-1.0*this.learningRate);
 		
-		//System.out.println("Delta2*: "+delta2.toString());
-		//System.out.println("adjustementOne: "+adjustmentOne.toString());
-		
 		this.weightsOne = this.weightsOne.add(adjustmentOne);
 		this.biasOne += adjustBiasOne;
 		this.weightsTwo = this.weightsTwo.add(adjustmentTwo);
 		this.biasTwo += adjustBiasTwo;
-		
-		//System.out.println("Squared Error: "+squaredError);
-		//System.out.println("Weights One: "+this.weightsOne.toString()+" // Bias One: "+this.biasOne);
-		//System.out.println("Weights Two: "+this.weightsTwo.toString()+" // Bias Two: "+this.biasTwo);
-		
-		//promptEnterKey();
 	}
 	
 	/**
@@ -346,8 +314,6 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 			// Exponential function to convert the error [0, +inf) into a vote [1,0].
 			votes[0] = Math.pow(2.0, -1.0 * (error / this.threshold));
 			votes[1] = 1.0 - votes[0];
-			
-			//System.out.println("Votes: ["+votes[0]+", "+votes[1]+"].");
 		}
 
 		return votes;
@@ -407,14 +373,12 @@ public class Autoencoder extends AbstractClassifier implements Classifier, OneCl
 	public void getModelDescription(StringBuilder out, int indent)
 	{
 	}
-	/**
-	public void promptEnterKey()
-	{
-		   System.out.println("Press \"ENTER\" to continue...");
-		   Scanner scanner = new Scanner(System.in);
-		   scanner.nextLine();
-	}*/
 
+	/**
+	 * Initializes the Autoencoder classifier on the argument trainingPoints.
+	 * 
+	 * @param trainingPoints the Collection of instances on which to initialize the Autoencoder classifier.
+	 */
 	@Override
 	public void initialize(Collection<Instance> trainingPoints)
 	{

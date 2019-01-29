@@ -37,7 +37,8 @@ import moa.core.Measurement;
 /**
  * Implements David Tax's Nearest Neighbour Description method described in
  * Section 3.4.2 of D. M. J. Tax, “One-Class Classification: Concept-learning 
- * in the absence of counter-examples,” Delft University of Technology, 2001.
+ * in the absence of counter-examples,” Delft University of Technology, 2001
+ * with adaptations for the data stream environment.
  * 
  * @author Richard Hugh Moulton
  *
@@ -48,7 +49,7 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 
 	public String getPurposeString()
 	{
-		return "NN-d is a nearest neighbour method for one class classification.";
+		return "NN-d is a nearest neighbour method for one-class classification.";
 	}
 	
 	public IntOption neighbourhoodSizeOption = new IntOption("neighbourhoodSize", 'n',
@@ -64,7 +65,7 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 			"The threshold value to determine whether an instance is a member of the target class or an outlier", 1.0);
 	
 	private int nbhdSize;
-	//private int instances, k, m;
+	//private int instances, k, m; //NOT IMPLEMENTED//
 	private double tau;
 	private FixedLengthList<Instance> neighbourhood;
 		
@@ -93,8 +94,8 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 	public void resetLearningImpl()
 	{
 		this.nbhdSize = this.neighbourhoodSizeOption.getValue();
-		//this.k = this.kOption.getValue();
-		//this.m = this.mOption.getValue();
+		//this.k = this.kOption.getValue(); //NOT IMPLEMENTED//
+		//this.m = this.mOption.getValue(); //NOT IMPLEMENTED//
 		
 		this.tau = this.thresholdOption.getValue();
 		
@@ -126,21 +127,13 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 	public double[] getVotesForInstance(Instance inst)
 	{
 		double[] votes = {0.5, 0.5};
-		//System.out.print(inst.value(inst.classAttribute()));
+
 		if(this.neighbourhood.size() > 2)
 		{
 			votes[1] = Math.pow(2.0, -1.0 * this.getAnomalyScore(inst) / this.tau);
 			votes[0] = 1.0 - votes[1];
-			
-			//if(this.instances != this.lastPrinted)
-			//{
-			//	printStatus();
-			//	this.lastPrinted = this.instances;
-			//}
 		}
-		
-		//System.out.println(", "+votes[0]);
-		
+				
 		return votes;
 	}
 	
@@ -161,43 +154,9 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 		Instance nnNearestNeighbour = getNearestNeighbour(nearestNeighbour, this.neighbourhood, true);
 		
 		double indicatorArgument = distance(inst, nearestNeighbour) / distance(nearestNeighbour, nnNearestNeighbour);
-		
-		//System.out.println("inst: "+inst.classValue()+", instNN: "+nearestNeighbour.classValue()+" ("+distance(inst, nearestNeighbour)+"), nnNN: "+nnNearestNeighbour.classValue()+" ("+distance(nearestNeighbour, nnNearestNeighbour)+")");
-		
+				
 		return indicatorArgument;
 	}
-
-	/**
-	 * Useful for diagnostics.
-	 *
-	private void printStatus()
-	{
-		double anomalies = 0;
-		
-		for (int i = 0 ; i < this.neighbourhood.size() ; i++)
-		{
-			anomalies += this.neighbourhood.get(i).classValue();
-		}
-		
-		//System.out.print("("+this.instances+":"+this.neighbourhood.size()+":"+new Double(anomalies).toString()+") Last Printed: "+this.lastPrinted+"\ninst:");
-		//for(int i = 0 ; i < inst.numAttributes() ; i++)
-		//{
-		//	System.out.print(" "+inst.value(i));
-		//}
-		//System.out.print("\nnn:");
-		//for(int i = 0 ; i < nearestNeighbour.numAttributes() ; i++)
-		//{
-		//	System.out.print(" "+nearestNeighbour.value(i));
-		//}
-		//System.out.print("\nnnNN:");
-		//for(int i = 0 ; i < nnNearestNeighbour.numAttributes() ; i++)
-		//{
-		//	System.out.print(" "+nnNearestNeighbour.value(i));
-		//}
-		//System.out.println("\nknh: "+distance(inst, nearestNeighbour)+", nnknh: "+distance(nearestNeighbour, nnNearestNeighbour)+", iA: "+indicatorArgument+", tau: "+tau);
-		//System.out.println(indicatorArgument + " -> " + (indicatorArgument / this.tau) + " --> ["+votes[0]+", "+votes[1]+"]");
-		
-	}*/
 
 	/**
 	 * Searches the neighbourhood in order to find the argument instance's nearest neighbour.
@@ -275,6 +234,11 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 
 	}
 
+	/**
+	 * Initializes the Nearest Neighbour Distance (NN-d) classifier with the argument training points.
+	 * 
+	 * @param traininPoints the Collection of instances on which to initialize the NN-d classifier.
+	 */
 	@Override
 	public void initialize(Collection<Instance> trainingPoints)
 	{
@@ -283,5 +247,36 @@ public class NearestNeighbourDescription extends AbstractClassifier implements C
 		if(trgPtsIterator.hasNext())
 			this.trainOnInstance(trgPtsIterator.next());
 	}
-
+	
+	/**
+	 * Useful for diagnostics.
+	 *
+	 */
+	private void printStatus()
+	{
+		double anomalies = 0;
+		
+		for (int i = 0 ; i < this.neighbourhood.size() ; i++)
+		{
+			anomalies += this.neighbourhood.get(i).classValue();
+		}
+		
+		System.out.print("("+this.instances+":"+this.neighbourhood.size()+":"+new Double(anomalies).toString()+") Last Printed: "+this.lastPrinted+"\ninst:");
+		for(int i = 0 ; i < inst.numAttributes() ; i++)
+		{
+			System.out.print(" "+inst.value(i));
+		}
+		System.out.print("\nnn:");
+		for(int i = 0 ; i < nearestNeighbour.numAttributes() ; i++)
+		{
+			System.out.print(" "+nearestNeighbour.value(i));
+		}
+		System.out.print("\nnnNN:");
+		for(int i = 0 ; i < nnNearestNeighbour.numAttributes() ; i++)
+		{
+			System.out.print(" "+nnNearestNeighbour.value(i));
+		}
+		System.out.println("\nknh: "+distance(inst, nearestNeighbour)+", nnknh: "+distance(nearestNeighbour, nnNearestNeighbour)+", iA: "+indicatorArgument+", tau: "+tau);
+		System.out.println(indicatorArgument + " -> " + (indicatorArgument / this.tau) + " --> ["+votes[0]+", "+votes[1]+"]");
+	}
 }

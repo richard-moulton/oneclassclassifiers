@@ -172,7 +172,6 @@ public class HSTreeNode implements Serializable
 		else
 		{
 			anomalyScore = this.r * Math.pow(2.0, this.depth);
-			//System.out.print("this.r "+this.r+", this.depth "+this.depth+" and anomalyScore is "+anomalyScore+" // ");
 		}
 		
 		return anomalyScore;

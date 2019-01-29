@@ -16,7 +16,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program. If not, see <http://www.gnu.org/licenses/>.
  *    
- */package moa.classifiers;
+ */
+package moa.classifiers;
 
 import java.util.Collection;
 
@@ -30,9 +31,16 @@ import com.yahoo.labs.samoa.instances.Instance;
  * @author Richard Hugh Moulton
  *
  */
-public interface OneClassClassifier extends MultiClassClassifier {
-
+public interface OneClassClassifier extends MultiClassClassifier
+{
+	/**
+	 * Allows a one class classifier to be initialized with a starting set of training instances.
+	 */
 	public void initialize(Collection<Instance> trainingPoints);
 	
+	/**
+	 * For use when an anomaly score is needed instead of a vote.
+	 * The higher an instance's anomaly score is, the more likely it is an anomaly.
+	 */
 	public double getAnomalyScore(Instance inst);
 }

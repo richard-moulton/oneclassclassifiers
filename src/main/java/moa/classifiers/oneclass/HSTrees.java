@@ -59,7 +59,7 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 	public FloatOption sizeLimitOption = new FloatOption("sizeLimit", 's', "The minimum mass required in a node (as a "
 			+ "fraction of the window size) to calculate the anomaly score.", 0.1, Double.MIN_VALUE, 1.0);
 	
-	// Respectively: the window size, the number of trees, the maximum depth of the trees,
+	// Respectively, these variables store: the window size, the number of trees, the maximum depth of the trees,
 	// the dimensionality of the data stream and the number of instances seen to date.
 	/**
 	 * The size of the landmark windows used - 'psi' in the original paper.
@@ -149,17 +149,10 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 		// If this is the last instance of the window, update every HSTree's model
 		if(this.numInstances % windowSize == 0)
 		{
-			//if(this.numInstances == windowSize)
-			//{
-			//	referenceWindow = false;
-			//}
-			//else
-			//{
-				for(int i = 0 ; i < this.numTrees ; i++)
-				{
-					forest[i].updateModel();
-				}
-			//}
+			for(int i = 0 ; i < this.numTrees ; i++)
+			{
+				forest[i].updateModel();
+			}
 		}
 		
 		this.numInstances++;
@@ -201,23 +194,12 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 	public double[] getVotesForInstance(Instance inst)
 	{
 		double[] votes = {0.5, 0.5};
-		//System.out.print("(HSTrees "+this.numInstances+" "+this.referenceWindow+")");
-		//System.out.print("inst:");
-		//for(int i = 0 ; i < inst.numAttributes() ; i++)
-		//{
-		//	System.out.print(" "+inst.value(i));
-		//}
-		//System.out.println();
-		
-		//System.out.print(inst.value(inst.numAttributes() - 1));
 		
 		if(!referenceWindow)
 		{
 			votes[1] = this.getAnomalyScore(inst) + 0.5 - this.anomalyThreshold;
 			votes[0] = 1.0 - votes[1];
 		}
-
-		//System.out.println(", "+votes[0]);
 		
 		return votes;
 	}
@@ -239,16 +221,12 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 			int massLimit = (int) (Math.ceil(this.sizeLimit*this.windowSize));
 			double maxScore = this.windowSize * Math.pow(2.0, this.maxDepth);
 
-			//System.out.println("accumulatedScore: 0.0");
 			for(int i = 0 ; i < this.numTrees ; i++)
 			{
 				accumulatedScore += (forest[i].score(inst, massLimit) / maxScore);
-				//System.out.println(" "+accumulatedScore);
 			}
-			//System.out.println();
 
 			accumulatedScore = accumulatedScore / (((double) this.numTrees));
-			//System.out.println("accumulatedScore / : "+accumulatedScore);
 
 			return 0.5 - accumulatedScore + this.anomalyThreshold;
 		}
@@ -275,6 +253,11 @@ public class HSTrees extends AbstractClassifier implements Classifier, OneClassC
 
 	}
 
+	/**
+	 * Initializes the Streaming HS-Trees classifier on the argument trainingPoints.
+	 * 
+	 * @param trainingPoints the Collection of instance with which to initialize the Streaming Hs-Trees classifier.
+	 */
 	@Override
 	public void initialize(Collection<Instance> trainingPoints)
 	{
