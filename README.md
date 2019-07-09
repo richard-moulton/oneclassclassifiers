@@ -1,5 +1,5 @@
 # oneclassclassifiers
-Implementations of one-class classifiers for use with MOA. Currently compatible with MOA 17.06.
+Implementations of one-class classifiers for use with MOA. Included as part of the MOA 19.04.0 release.
 
 + **Autoencoder**. A neural network that attempts to reconstruct the input. The autoencoder's structure is an input layer with one neuron for each non-class attribute, a hidden layer of two neurons and an output layer with one neuron for each non-class attribute. Partially modeled on Albert Bifet's Perceptron.java, also found in the MOA project. Backpropagation implementation based on Matt Mazur's excellent tutorial on this topic [2]. Includes a dependency on the [Apache Commons Math linear algebra library](https://commons.apache.org/proper/commons-math/userguide/linear.html).
 
